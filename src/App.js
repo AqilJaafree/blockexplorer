@@ -1,36 +1,72 @@
-import { Alchemy, Network } from 'alchemy-sdk';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
+import { Alchemy, Network } from "alchemy-sdk";
+import "./App.css";
 
-import './App.css';
-
-// Refer to the README doc for more information about using API
-// keys in client-side code. You should never do this in production
-// level code.
 const settings = {
   apiKey: process.env.REACT_APP_ALCHEMY_API_KEY,
   network: Network.ETH_MAINNET,
 };
 
-
-// In this week's lessons we used ethers.js. Here we are using the
-// Alchemy SDK is an umbrella library with several different packages.
-//
-// You can read more about the packages here:
-//   https://docs.alchemy.com/reference/alchemy-sdk-api-surface-overview#api-surface
 const alchemy = new Alchemy(settings);
 
 function App() {
   const [blockNumber, setBlockNumber] = useState();
+  const [blockInfo, setBlockInfo] = useState(null);
+  const [userInput, setUserInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     async function getBlockNumber() {
-      setBlockNumber(await alchemy.core.getBlockNumber());
+      
+        const number = await alchemy.core.getBlockNumber();
+        setBlockNumber(number);
+     
     }
 
     getBlockNumber();
-  });
+  }, []);
 
-  return <div className="App">Block Number: {blockNumber}</div>;
+  async function fetchBlockInfo() {
+    setIsLoading(true);
+    try {
+      const blockTagOrHash = userInput || "latest";
+      const info = await alchemy.core.getBlock(blockTagOrHash);
+      setBlockInfo(info);
+    } catch (error) {
+      // Handle errors here
+      console.error("Error fetching block info:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <div className="App">
+      <h1>Block Explorer</h1>
+      <p>Current Block Number: {blockNumber}</p>
+
+      <div>
+        <input
+          type="text"
+          placeholder="Enter block number or hash"
+          value={userInput}
+          onChange={(e) => setUserInput(e.target.value)}
+        />
+        <button onClick={fetchBlockInfo}>Fetch Block Info</button>
+      </div>
+
+      {isLoading ? (
+        <p>Loading...</p>
+      ) : (
+        blockInfo && (
+          <div>
+            <h2>Block Info</h2>
+            <pre>{JSON.stringify(blockInfo, null, 2)}</pre>
+          </div>
+        )
+      )}
+    </div>
+  );
 }
 
 export default App;
